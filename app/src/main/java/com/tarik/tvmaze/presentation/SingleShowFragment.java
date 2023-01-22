@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.room.Room;
 
 import android.text.Html;
 import android.text.method.ScrollingMovementMethod;
@@ -15,6 +16,9 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.tarik.tvmaze.R;
+import com.tarik.tvmaze.data.local.AppDatabase;
+import com.tarik.tvmaze.data.local.dao.ShowDao;
 import com.tarik.tvmaze.data.remote.RetrofitProvider;
 import com.tarik.tvmaze.data.remote.RetrofitService;
 import com.tarik.tvmaze.data.remote.dto.ShowDto;
@@ -31,6 +35,8 @@ public class SingleShowFragment extends Fragment {
     public static final String ARG_SHOW_ID = "ARG_SHOW_ID";
 
     private FragmentSingleShowBinding binding;
+    private AppDatabase appDatabase = null;
+    ShowDao showDao = null;
     private long showId;
 
     private Callback<ShowDto> callback = new Callback<ShowDto>() {
@@ -74,6 +80,8 @@ public class SingleShowFragment extends Fragment {
                 requireActivity().finish();
             }
         }
+        appDatabase = AppDatabase.getDatabase(requireActivity().getApplicationContext());
+        showDao = appDatabase.showDao();
     }
 
     @Override
@@ -108,12 +116,42 @@ public class SingleShowFragment extends Fragment {
         binding.nameTextView.setText(show.showName);
         binding.ratingBar.setRating((float)show.showRating/2f);
         binding.premieredTextView.setText("Premiered: " + show.showPremiered);
-        binding.officialSiteTextView.setText("official site: " + Html.fromHtml(show.showSite));
+        if (show.showSite != null && !show.showSite.isEmpty()) {
+            binding.officialSiteTextView.setText("official site: " + Html.fromHtml(show.showSite));
+        }
         binding.summaryTextArea.setText(Html.fromHtml(show.showSummary));
 
         // Make it possible to scroll through the text view
         binding.summaryTextArea.setMovementMethod(new ScrollingMovementMethod());
 
+        renderFloatingActionButton(show);
+    }
+
+    private void renderFloatingActionButton(Show show) {
+        if (showDao != null) {
+            boolean isAdded = showDao.isShowAlreadySaved(show.showId) == show.showId;
+            if (!isAdded) {
+                binding.floatingActionButton.setImageResource(R.drawable.ic_baseline_add);
+                binding.floatingActionButton.setOnClickListener(v -> onAddShowClick(v, show));
+            } else {
+                binding.floatingActionButton.setImageResource(R.drawable.ic_baseline_remove);
+                binding.floatingActionButton.setOnClickListener(v -> onRemoveShowClick(v, show));
+            }
+        }
+    }
+
+    private void onAddShowClick(View view, Show show) {
+        if (showDao != null) {
+            showDao.insertShow(show);
+            renderFloatingActionButton(show);
+        }
+    }
+
+    private void onRemoveShowClick(View view, Show show) {
+        if (showDao != null) {
+            showDao.deleteShow(show);
+            renderShow(show);
+        }
     }
 
 }

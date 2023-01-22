@@ -1,49 +1,43 @@
 package com.tarik.tvmaze.presentation;
 
+import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import com.tarik.tvmaze.R;
+import com.tarik.tvmaze.data.local.AppDatabase;
+import com.tarik.tvmaze.data.local.dao.ShowDao;
+import com.tarik.tvmaze.databinding.FragmentShowsBinding;
+import com.tarik.tvmaze.domain.model.Show;
+import com.tarik.tvmaze.presentation.discover.ShowAdapter;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ShowsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
-public class ShowsFragment extends Fragment {
+import java.util.List;
+import java.util.Objects;
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+public class ShowsFragment extends Fragment implements ShowAdapter.ShowClickListener {
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    private FragmentShowsBinding binding;
+    private ShowAdapter adapter = new ShowAdapter(this);
+
+    private AppDatabase appDatabase = null;
+    private ShowDao showDao = null;
 
     public ShowsFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment ShowsFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static ShowsFragment newInstance(String param1, String param2) {
+    public static ShowsFragment newInstance() {
         ShowsFragment fragment = new ShowsFragment();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
         fragment.setArguments(args);
         return fragment;
     }
@@ -51,16 +45,58 @@ public class ShowsFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
+
+        appDatabase = AppDatabase.getDatabase(requireActivity().getApplicationContext());
+        showDao = appDatabase.showDao();
+
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_shows, container, false);
+    public View onCreateView(
+            @NonNull LayoutInflater inflater,
+            ViewGroup container,
+            Bundle savedInstanceState
+    ) {
+        binding = FragmentShowsBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        binding.recyclerView.setLayoutManager(new GridLayoutManager(requireContext(), 3));
+        binding.recyclerView.setAdapter(adapter);
+
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (showDao != null) {
+            List<Show> showList = showDao.getAllShows();
+            if (showList.size() > 0) {
+                adapter.setShowList(showList);
+                binding.recyclerView.setVisibility(View.VISIBLE);
+                binding.emptyListTextView.setVisibility(View.GONE);
+            } else {
+                binding.recyclerView.setVisibility(View.GONE);
+                binding.emptyListTextView.setVisibility(View.VISIBLE);
+            }
+        }
+
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
+
+    @Override
+    public void onClick(Show show) {
+        Intent intent = new Intent(requireContext(), SingleShowActivity.class);
+        intent.putExtra(SingleShowFragment.ARG_SHOW_ID, show.showId);
+        startActivity(intent);
     }
 }

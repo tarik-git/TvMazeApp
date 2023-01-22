@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         if (itemId == R.id.menu_item_discover) {
             setupFragment(DiscoverFragment.newInstance());
         } else if (itemId == R.id.menu_item_show) {
-            setupFragment(ShowsFragment.newInstance("",""));
+            setupFragment(ShowsFragment.newInstance());
         } else {
             return false;
         }
